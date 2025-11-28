@@ -1,4 +1,4 @@
-# GTSC NXOpen Resources
+# NXOpen Resources
 # Description of Files
 
 - ``Expressions.py``:  Currently, formats and writes expression files (.exp) as well as .txt files to reference the name of expressions.
