@@ -1,0 +1,69 @@
+#include <string>
+#include <math.h>
+#include <cmath>
+#include <iostream>
+#include <iomanip>
+using namespace std;
+#define PI 3.14159265
+
+//==== Create A Multi Section Wing and Change Some Parameters ====//
+void main()
+{
+    //Set Default Values
+    int n  = 200; // n = number of sections
+    int Root_Chord = 7;
+    int Tip_Chord  = 3;
+    int LE_L = Root_Chord - Tip_Chord;
+    double Wing_Span = 11.2;   //Sweep Angle of the Tailing Edge
+    double Xlim = 1.345*PI;    //limit of the x values
+    double LE_Max = 1.81673314663;   //end value of the eqaution
+    double LE_a1 = 0.55;
+    double LE_a2 =0.1;
+    double xpart = 0;
+    double ypart = 0;
+    std::string st;
+    //==== Add Wing ====//
+    string wid = AddGeom( "WING", "" );
+
+    // Each Section has a Root and Tip Chords and their Respective Airfoils
+    for (int i = 1; i <= 2; ++i) {
+        InsertXSec( wid, 1, XS_FOUR_SERIES );
+    }
+    // Cut The Original Section //
+    CutXSec( wid, 1 );
+
+    // Change Driver //
+    SetDriverGroup( wid, 1, AREA_WSECT_DRIVER, ROOTC_WSECT_DRIVER, TIPC_WSECT_DRIVER );
+
+    SetParmVal( wid, "RotateAirfoilMatchDideralFlag", "WingGeom", 1.0 );
+
+    // Change Some Parameters 1st Section //
+    SetParmVal( wid, "Root_Chord", "XSec_1", Root_Chord );
+    // All the Math Happens Here
+    double xpart0 = 0;
+    double xpart1;
+    double ypart0 = 0;
+    double ypart1;
+
+    for (int i = 1; i <= n; ++i) {
+        xpart1 = (double(i)/double(n))*LE_L/Xlim;
+        ypart1 = (sin((2*(pow (LE_a2,double(4)))*(pow (xpart,5)) + (pow(LE_a2,double(2)))*(pow(xpart,double(3))) + (1.2*(LE_a2)*(xpart)))*180/PI)/LE_a1)*Wing_Span/LE_Max;
+        st = std::to_string (i);
+        SetParmVal( wid, "Tip_Chord", "XSec_"+st, xpart );
+        SetParmVal( wid, "Span", "XSec_"+st, ypart/2 );
+        SetParmVal( wid, "Sweep", "XSec_"+st, atan2 ((xpart1-xpart0),(ypart1-ypart0)));
+        Update();
+        // Because Sections Are Connected Change One Section At A Time Then Update //
+    }
+    
+    // Change Airfoil //
+    SetParmVal( wid, "Camber", "XSecCurve_0", 0.02 );
+    Update();
+
+    //==== Check For API Errors ====//
+    while ( GetNumTotalErrors() > 0 )
+    {
+        ErrorObj err = PopLastError();
+        Print( err.GetErrorString() );
+    }
+}
